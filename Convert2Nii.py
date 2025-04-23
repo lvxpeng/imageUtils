@@ -78,6 +78,33 @@ class Convert2Nii:
         logging.info("NII file saved to: %s", output_file)
 
 
+    def png2multi_nii(self, input_path, output_path):
+        """将多个PNG文件转换为多个NII文件"""
+        self._check_paths(input_path, output_path)
+
+        allpng_array = []
+        for png in sorted(os.listdir(input_path)):
+            if png.lower().endswith('.png'):
+                png_path = os.path.join(input_path, png)
+                try:
+                    png_image = cv2.imread(png_path)
+                    if png_image is None:
+                        logging.warning("Failed to read PNG file: %s", png_path)
+                        continue
+                    if png_image.shape[:2] != (512, 512):
+                        png_image = cv2.resize(png_image, (512, 512))
+                    png_array = Image.fromarray(png_image).convert('L')
+                    # allpng_array.append(np.array(png_array, dtype=np.uint8))
+                    png_array = np.array(png_array, dtype=np.uint8)
+
+                    out_nii = sitk.GetImageFromArray(png_array)
+                    index = save2output(self, output_path)
+                    output_file = os.path.join(output_path, '{}out.nii.gz'.format(index + 1))
+                    sitk.WriteImage(out_nii, output_file)
+                    logging.info("NII file saved to: %s", output_file)
+                except Exception as e:
+                    logging.error("Error processing PNG file %s: %s", png_path, str(e))
+
 
     def tif2nii(self, input_path, output_path):
       """将TIFF文件转换为NII文件"""
@@ -125,12 +152,14 @@ def save2output(self, output_path):
 
 
 if __name__ == '__main__':
-    input_path = 'D:/temp/tif'
-    output_path = 'D:/temp/images/gzsave'
+    input_path = 'D:/temp/unet image/moved'
+    # output_path = 'D:/temp/images/gzsave'
+    output_path = 'd:/temp/unet image/niigz'
     convert2nii = Convert2Nii()
+
     try:
-        # convert2nii.png2nii(input_path, output_path)
-        convert2nii.tif2nii(input_path, output_path)
+        convert2nii.png2multi_nii(input_path, output_path)
+        # convert2nii.tif2nii(input_path, output_path)
     except Exception as e:
 
         logging.error("An error occurred during PNG to NII conversion: %s", str(e))
